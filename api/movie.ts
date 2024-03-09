@@ -33,19 +33,23 @@ router.post("/",(req,res)=>{
 });
 // ลบ
 router.delete("/:del_id",(req,res)=>{
-    let del_id = req.params.del_id;
-    let sql = 'DELETE FROM `Movie` WHERE Mid = ?'
-    sql = mysql.format(sql,[del_id]);
-    conn.query(sql,(err,result)=>{
-        if(err) throw err;
-        if(result.affectedRows == 1){
-            res
-                .status(200)
-                .json({ message: "Delete success"});
-        }else{
-            res
-                .status(400)
-                .json({message: "Delete failed"});
+    let id = +req.params.del_id;
+   // ลบข้อมูล person ที่เชื่อมโยงกับหนังด้วย mid
+    conn.query("delete MCreator, MStars FROM MCreator, MStars, Movie WHERE Movie.Mid = MCreator.Mid AND Movie.Mid = MStars.Mid and Movie.Mid = ? ", [id], (err, personResult) => {
+        if (err) throw err;
+        // ตรวจสอบว่ามี person ถูกลบไปหรือไม่
+        if (personResult.affectedRows > 0) {
+            // ถ้ามีข้อมูล person ถูกลบไป ให้ลบข้อมูลหนังด้วย id ที่รับมา
+            conn.query("DELETE FROM `Movie` WHERE Mid = ?", [id], (err, movieResult) => {
+                if (err) throw err;
+                res.status(200).json({ affected_row: movieResult.affectedRows });
+            });
+        } else {
+            // ถ้าไม่มีข้อมูล person ถูกลบไป ให้แค่ลบข้อมูลหนังด้วย id ที่รับมา
+            conn.query("DELETE FROM `Movie` WHERE Mid = ?", [id], (err, movieResult) => {
+                if (err) throw err;
+                res.status(200).json({ affected_row: movieResult.affectedRows  });
+            });
         }
     });
 });
